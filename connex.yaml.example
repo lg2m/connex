@@ -1,0 +1,16 @@
+servers:
+  - name: "example"
+    host: "0.0.0.0"
+    user: "user"
+    key_path: "~/.ssh/id_rsa"
+    applications:
+      - name: "Web Application"
+        description: "Example of adding port forwarding."
+        ports:
+          - local: 10000
+            remote: 8080
+      - name: "Code Server"
+        description: "Code Server"
+        ports:
+          - local: 42069
+            remote: 1234

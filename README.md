@@ -1,0 +1,3 @@
+# connex
+
+Simple SSH management

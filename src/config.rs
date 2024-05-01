@@ -13,7 +13,7 @@ pub struct Port {
 pub struct Application {
     pub name: String,
     pub description: String,
-    pub ports: Vec<Port>,
+    pub port: Port,
 }
 
 #[derive(Debug, Deserialize)]

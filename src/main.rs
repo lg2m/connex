@@ -20,8 +20,9 @@ enum Commands {
     #[command(arg_required_else_help = true)]
     Open {
         /// Host to connect to
-        #[arg(long, required = true)]
+        #[arg(short, long, required = true)]
         name: String,
+        /// Override user configured key
         #[arg(short, long, required = false)]
         key_path: Option<String>,
     },
@@ -29,7 +30,13 @@ enum Commands {
     #[command(arg_required_else_help = true)]
     Forward {
         /// Host to connect to
-        host: String,
+        #[arg(short, long, required = true)]
+        name: String,
+        #[arg(short, long, required = true)]
+        app_name: String,
+        /// Override user configured key
+        #[arg(short, long, required = false)]
+        key_path: Option<String>,
     }
 }
 
@@ -56,8 +63,16 @@ fn main() {
                 println!("Server not found in configuration..");
             }
         }
-        Commands::Forward { host } => {
-            println!("Forwarding port.. {host}");
+        Commands::Forward { name, app_name, key_path } => {
+            if let Some(server) = config.servers.iter().find(|s| s.name == name) {
+                if let Some(app) = server.applications.iter().find(|a| a.name == app_name) {
+                    println!("Forwarding port => {}:{} to localhost:{}", server.host, app.port.remote, app.port.local);
+                    match port_forward(server, app.port.local, app.port.remote) {
+                        Ok(_) => println!("Port forwarding successful."),
+                        Err(e) => println!("Failed to setup port forwarding: {:#?}", e),
+                    }
+                }
+            }
         }
     }
 }
@@ -80,5 +95,28 @@ fn connect_to_server(server: &Server) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("SSH command failed with status: {}", status))
+    }
+}
+
+fn port_forward(server: &Server, local_port: u16, remote_port: u16) -> Result<(), String> {
+    let ssh_command = format!(
+        "ssh -i {} -N -L {}:localhost:{} {}@{}",
+        server.key_path,
+        local_port,
+        remote_port,
+        server.user,
+        server.host,
+    );
+
+    let status = Command::new("sh")
+        .arg("-c")
+        .arg(ssh_command)
+        .status()
+        .expect("Failed to execute process.");
+
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("SSH port forwarding failed with status: {}", status))
     }
 }
